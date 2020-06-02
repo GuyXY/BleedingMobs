@@ -23,7 +23,6 @@ import me.snowleo.bleedingmobs.listener.ParticleEntityListener;
 import me.snowleo.bleedingmobs.listener.ParticleProtectionListener;
 import me.snowleo.bleedingmobs.particles.Storage;
 import me.snowleo.bleedingmobs.tasks.BloodStreamTask;
-import me.snowleo.bleedingmobs.update.UpdateNotifier;
 import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.PluginManager;
@@ -53,13 +52,8 @@ public class BleedingMobs extends JavaPlugin implements IBleedingMobs
 	{
 		final PluginManager pluginManager = getServer().getPluginManager();
 		settings = new Settings(this);
-		UpdateNotifier notifier = new UpdateNotifier(this);
-		if (settings.isCheckForUpdates() == true)
-		{
-			notifier.check();
-		}
 		storage = new Storage(this, settings.getMaxParticles());
-		PluginCommand command = (PluginCommand)this.getCommand("bleedingmobs");
+		PluginCommand command = this.getCommand("bleedingmobs");
 		RootCommand rootCommand = new RootCommand(this);
 		command.setExecutor(rootCommand);
 		command.setTabCompleter(rootCommand);
@@ -67,7 +61,6 @@ public class BleedingMobs extends JavaPlugin implements IBleedingMobs
 
 		pluginManager.registerEvents(new ParticleEntityListener(this), this);
 		pluginManager.registerEvents(new ParticleProtectionListener(this), this);
-		pluginManager.registerEvents(notifier, this);
 
 		restartTimer();
 	}

@@ -20,15 +20,10 @@ package me.snowleo.bleedingmobs;
 import java.util.*;
 import me.snowleo.bleedingmobs.particles.ParticleType;
 import me.snowleo.bleedingmobs.particles.Util;
-import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.EntityType;
-import org.bukkit.material.Colorable;
-import org.bukkit.material.MaterialData;
-import org.bukkit.material.TexturedMaterial;
-
 
 public class Settings
 {
@@ -38,16 +33,32 @@ public class Settings
 	private volatile boolean bleedingEnabled = true;
 	private volatile int maxParticles = MAX_PARTICLES;
 	private final IBleedingMobs plugin;
-	private volatile boolean checkForUpdates = true;
 	private volatile boolean permissionOnly = false;
-	private volatile int attackPercentage = 100;
-	private volatile int fallPercentage = 60;
-	private volatile int deathPercentage = 150;
-	private volatile int projectilePercentage = 60;
+	private volatile int attackPercentage = 30;
+	private volatile int fallPercentage = 20;
+	private volatile int deathPercentage = 50;
+	private volatile int projectilePercentage = 25;
 	private volatile int bloodstreamPercentage = 10;
 	private volatile int bloodstreamTime = 200;
 	private volatile int bloodstreamInterval = 10;
 	private volatile EnumSet<Material> particleMaterials = EnumSet.allOf(Material.class);
+
+	private volatile EnumSet<Material> saturatedMats = EnumSet.copyOf(Arrays.asList(
+			Material.GRASS_BLOCK, Material.DIRT, Material.COARSE_DIRT, Material.PODZOL,
+			Material.STONE, Material.GRANITE, Material.DIORITE, Material.ANDESITE,
+			Material.POLISHED_GRANITE, Material.POLISHED_DIORITE, Material.POLISHED_ANDESITE,
+			Material.COBBLESTONE,
+			Material.SAND, Material.RED_SAND,
+			Material.SANDSTONE, Material.CUT_SANDSTONE, Material.CHISELED_SANDSTONE,
+			Material.RED_SANDSTONE, Material.CUT_RED_SANDSTONE, Material.CHISELED_RED_SANDSTONE,
+			Material.OAK_LOG, Material.BIRCH_LOG, Material.SPRUCE_LOG, Material.JUNGLE_LOG, Material.DARK_OAK_LOG, Material.ACACIA_LOG,
+			Material.OAK_PLANKS, Material.BIRCH_PLANKS, Material.SPRUCE_PLANKS, Material.JUNGLE_PLANKS, Material.DARK_OAK_PLANKS, Material.ACACIA_PLANKS,
+			Material.GRAVEL,
+			Material.NETHERRACK,
+			Material.CLAY,
+			Material.SNOW_BLOCK,
+			Material.BRICK,
+			Material.MOSSY_COBBLESTONE));
 
 	public Settings(final IBleedingMobs plugin)
 	{
@@ -67,21 +78,40 @@ public class Settings
 			plugin.getStorage().getItems().setLimit(newMaxParticles);
 		}
 		maxParticles = newMaxParticles;
-		bleedWhenCanceled = config.getBoolean("bleed-when-canceled", false);
-		checkForUpdates = config.getBoolean("check-for-updates", true);
-		permissionOnly = config.getBoolean("permission-only", false);
-		attackPercentage = Math.max(0, Math.min(2000, config.getInt("attack-percentage", 100)));
-		fallPercentage = Math.max(0, Math.min(2000, config.getInt("fall-percentage", 60)));
-		deathPercentage = Math.max(0, Math.min(2000, config.getInt("death-percentage", 200)));
-		projectilePercentage = Math.max(0, Math.min(2000, config.getInt("projectile-percentage", 60)));
-		bloodstreamPercentage = Math.max(0, Math.min(2000, config.getInt("bloodstream.percentage", 10)));
-		bloodstreamTime = Math.max(0, Math.min(72000, config.getInt("bloodstream.time", 200)));
-		bloodstreamInterval = Math.max(1, Math.min(1200, config.getInt("bloodstream.interval", 10)));
+		bleedWhenCanceled = config.getBoolean("bleed-when-canceled", bleedWhenCanceled);
+		permissionOnly = config.getBoolean("permission-only", permissionOnly);
+		attackPercentage = Math.max(0, Math.min(2000, config.getInt("attack-percentage", attackPercentage)));
+		fallPercentage = Math.max(0, Math.min(2000, config.getInt("fall-percentage", fallPercentage)));
+		deathPercentage = Math.max(0, Math.min(2000, config.getInt("death-percentage", deathPercentage)));
+		projectilePercentage = Math.max(0, Math.min(2000, config.getInt("projectile-percentage", projectilePercentage)));
+		bloodstreamPercentage = Math.max(0, Math.min(2000, config.getInt("bloodstream.percentage", bloodstreamPercentage)));
+		bloodstreamTime = Math.max(0, Math.min(72000, config.getInt("bloodstream.time", bloodstreamTime)));
+		bloodstreamInterval = Math.max(1, Math.min(1200, config.getInt("bloodstream.interval", bloodstreamInterval)));
 		EnumSet<Material> partMaterials = EnumSet.noneOf(Material.class);
 		partMaterials.add(Material.CAKE);
 		partMaterials.add(Material.BONE);
-		partMaterials.add(Material.WOOL);
+		partMaterials.add(Material.RED_WOOL);
+		partMaterials.add(Material.RED_CONCRETE);
+		partMaterials.add(Material.RED_DYE);
 		partMaterials.add(Material.REDSTONE);
+
+		final List<String> mats = config.getStringList("saturated-materials");
+		final EnumSet<Material> materials = EnumSet.noneOf(Material.class);
+
+		for (String matName : mats)
+		{
+			final Material material = Material.matchMaterial(matName.replaceAll("-", "_").toUpperCase());
+			if (material != null)
+			{
+				materials.add(material);
+			}
+		}
+
+		if (!materials.isEmpty())
+		{
+			setSaturatedMats(materials);
+		}
+
 		for (EntityType entityType : ParticleType.keys())
 		{
 			ParticleType.Builder builder = ParticleType.getBuilder(entityType);
@@ -91,90 +121,26 @@ public class Settings
 			builder.setBoneChance(Math.min(100, Math.max(0, config.getInt(name + ".bone-chance", builder.getBoneChance()))));
 			builder.setParticleLifeFrom(Math.max(0, Math.min(1200, config.getInt(name + ".particle-life.from", builder.getParticleLifeFrom()))));
 			builder.setParticleLifeTo(Math.max(builder.getParticleLifeFrom(), Math.min(1200, config.getInt(name + ".particle-life.to", builder.getParticleLifeTo()))));
-			final String colorName = config.getString(name + ".wool-color", builder.getWoolColor().toString()).replaceAll("[_-]", "").toUpperCase(Locale.ENGLISH);
-			byte woolcolor = -1;
-			for (DyeColor dyeColor : DyeColor.values())
-			{
-				if (dyeColor.toString().replace("_", "").equals(colorName))
-				{
-					woolcolor = dyeColor.getWoolData();
-				}
-			}
-			if (woolcolor < 0)
-			{
-				woolcolor = ((Number)Math.min(15, Math.max(0, config.getInt(name + ".wool-color", builder.getWoolColor().getWoolData())))).byteValue();
-			}
-			builder.setWoolColor(DyeColor.getByWoolData(woolcolor));
 			builder.setStainsFloor(config.getBoolean(name + ".stains-floor", builder.isStainsFloor()));
 			builder.setBoneLife(Math.max(0, Math.min(1200, config.getInt(name + ".bone-life", builder.getBoneLife()))));
 			builder.setStainLifeFrom(Math.max(0, Math.min(12000, config.getInt(name + ".stain-life.from", builder.getStainLifeFrom()))));
 			builder.setStainLifeTo(Math.max(builder.getStainLifeFrom(), Math.min(12000, config.getInt(name + ".stain-life.to", builder.getStainLifeTo()))));
 			builder.setAmountFrom(Math.max(0, Math.min(1000, config.getInt(name + ".amount.from", builder.getAmountFrom()))));
 			builder.setAmountTo(Math.max(builder.getAmountFrom(), Math.min(1000, config.getInt(name + ".amount.to", builder.getAmountTo()))));
-			final List<String> mats = config.getStringList(name + ".saturated-materials");
-			final EnumSet<Material> materials = EnumSet.noneOf(Material.class);
-			if (mats != null)
-			{
-				for (String matName : mats)
-				{
-					final Material material = Material.matchMaterial(matName.replaceAll("-", "_"));
-					if (material != null)
-					{
-						materials.add(material);
-					}
-				}
-			}
-			if (!materials.isEmpty())
-			{
-				builder.setSaturatedMats(materials);
-			}
+
 			String particleMatName = config.getString(name + ".particle-material");
-			String particleMatData = null;
 			if (particleMatName != null)
 			{
-				if (particleMatName.contains(" "))
-				{
-					final String[] parts = particleMatName.split(" ", 2);
-					particleMatName = parts[1];
-					particleMatData = parts[0];
-				}
-				final Material material = Material.matchMaterial(particleMatName.replaceAll("-", "_"));
+				final Material material = Material.matchMaterial(particleMatName.replaceAll("-", "_").toUpperCase());
 				if (material != null && Util.isAllowedMaterial(material))
 				{
-					final MaterialData matData = material.getNewData((byte)0);
-					if (particleMatData != null && !particleMatData.isEmpty())
-					{
-						particleMatData = particleMatData.toUpperCase(Locale.ENGLISH).replaceAll("-", "_");
-						if (matData instanceof Colorable)
-						{
-							for (DyeColor dyeColor : DyeColor.values())
-							{
-								if (dyeColor.toString().equals(particleMatData))
-								{
-									((Colorable)matData).setColor(dyeColor);
-								}
-							}
-						}
-						if (matData instanceof TexturedMaterial)
-						{
-							for (Material texture : ((TexturedMaterial)matData).getTextures())
-							{
-								if (texture.toString().equals(particleMatData))
-								{
-									((TexturedMaterial)matData).setMaterial(texture);
-								}
-							}
-						}
-					}
-					builder.setParticleMaterial(matData);
 					partMaterials.add(material);
 				}
 			}
 			ParticleType.save(builder.build());
 		}
 		particleMaterials = partMaterials;
-		final List<String> coll = config.getStringList("worlds");
-		worlds = new HashSet<String>(coll == null ? Collections.<String>emptyList() : coll);
+		worlds = new HashSet<>(config.getStringList("worlds"));
 	}
 
 	public final void saveConfig()
@@ -184,7 +150,7 @@ public class Settings
 								+ "Don't use tabs in this file\n"
 								+ "You can always reset this to the defaults by removing the file.\n"
 								+ "Chances are from 0 to 100, no fractions allowed. 100 means 100% chance of drop.\n"
-								+ "There is no chance value for the particle material (e.g. redstone), \n"
+								+ "There is no chance value for the particle material (e.g. red dye), \n"
 								+ "because it's calculated from the wool and bone chances (so if you set them both to 0, it's 100%).\n"
 								+ "All time values are in ticks = 1/20th of a second.\n"
 								+ "If there are from and to values, then the value is randomly selected between from and to.\n"
@@ -197,7 +163,6 @@ public class Settings
 		config.set("enabled", bleedingEnabled);
 		config.set("max-particles", maxParticles);
 		config.set("bleed-when-canceled", bleedWhenCanceled);
-		config.set("check-for-updates", true);
 		config.set("permission-only", permissionOnly);
 		config.set("attack-percentage", attackPercentage);
 		config.set("fall-percentage", fallPercentage);
@@ -206,6 +171,14 @@ public class Settings
 		config.set("bloodstream.percentage", bloodstreamPercentage);
 		config.set("bloodstream.time", bloodstreamTime);
 		config.set("bloodstream.interval", bloodstreamInterval);
+
+		final List<String> converted = new ArrayList<>();
+		for (Material material : getSaturatedMats())
+		{
+			converted.add(material.toString().toLowerCase(Locale.ENGLISH).replaceAll("_", "-"));
+		}
+		config.set("saturated-materials", converted);
+
 		for (EntityType entityTypeType : ParticleType.keys())
 		{
 			ParticleType particleType = ParticleType.get(entityTypeType);
@@ -214,31 +187,16 @@ public class Settings
 			config.set(name + ".bone-chance", particleType.getBoneChance());
 			config.set(name + ".particle-life.from", particleType.getParticleLifeFrom());
 			config.set(name + ".particle-life.to", particleType.getParticleLifeTo());
-			config.set(name + ".wool-color", particleType.getWoolColor().toString().replace("_", "-").toLowerCase(Locale.ENGLISH));
 			config.set(name + ".stains-floor", particleType.isStainingFloor());
 			config.set(name + ".bone-life", particleType.getBoneLife());
 			config.set(name + ".stain-life.from", particleType.getStainLifeFrom());
 			config.set(name + ".stain-life.to", particleType.getStainLifeTo());
 			config.set(name + ".amount.from", particleType.getAmountFrom());
 			config.set(name + ".amount.to", particleType.getAmountTo());
-			final List<String> converted = new ArrayList<String>();
-			for (Material material : particleType.getSaturatedMaterials())
-			{
-				converted.add(material.toString().toLowerCase(Locale.ENGLISH).replaceAll("_", "-"));
-			}
-			config.set(name + ".saturated-materials", converted);
-			String particleMat = particleType.getParticleMaterial().getItemType().toString().toLowerCase(Locale.ENGLISH).replaceAll("_", "-");
-			if (particleType.getParticleMaterial() instanceof Colorable)
-			{
-				particleMat = ((Colorable)particleType.getParticleMaterial()).getColor().toString().toLowerCase(Locale.ENGLISH).replaceAll("_", "-") + " " + particleMat;
-			}
-			if (particleType.getParticleMaterial() instanceof TexturedMaterial)
-			{
-				particleMat = ((TexturedMaterial)particleType.getParticleMaterial()).getMaterial().toString().toLowerCase(Locale.ENGLISH).replaceAll("_", "-") + " " + particleMat;
-			}
+			String particleMat = particleType.getParticleMaterial().toString().toLowerCase(Locale.ENGLISH).replaceAll("_", "-");
 			config.set(name + ".particle-material", particleMat);
 		}
-		config.set("worlds", new ArrayList<String>(worlds));
+		config.set("worlds", new ArrayList<>(worlds));
 		plugin.saveConfig();
 	}
 
@@ -280,11 +238,6 @@ public class Settings
 	public void setBleedWhenCanceled(final boolean set)
 	{
 		this.bleedWhenCanceled = set;
-	}
-
-	public boolean isCheckForUpdates()
-	{
-		return this.checkForUpdates;
 	}
 
 	public boolean isPermissionOnly()
@@ -340,6 +293,16 @@ public class Settings
 	public int getFallPercentage()
 	{
 		return fallPercentage;
+	}
+
+	public EnumSet<Material> getSaturatedMats()
+	{
+		return saturatedMats;
+	}
+
+	public void setSaturatedMats(final EnumSet<Material> saturatedMats)
+	{
+		this.saturatedMats = saturatedMats;
 	}
 
 	public void setFallPercentage(final int fallPercentage)

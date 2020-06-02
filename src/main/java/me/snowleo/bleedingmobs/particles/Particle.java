@@ -20,10 +20,12 @@ package me.snowleo.bleedingmobs.particles;
 import me.snowleo.bleedingmobs.IBleedingMobs;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.Collections;
+import java.util.UUID;
 
 
 public class Particle
@@ -41,7 +43,7 @@ public class Particle
 		DropType dropType = DropType.getRandom(type, bones);
 		lifetime = estimateLifetime(dropType);
 		stack = createStack(dropType);
-		makeUnique(loc.getWorld());
+		makeUnique();
 		item = dropItem(loc.clone());
 	}
 
@@ -71,37 +73,28 @@ public class Particle
 
 	private ItemStack createWoolStack()
 	{
-		if (type.isMagicMaterial())
-		{
-			return new ItemStack(Material.WOOL, 1, Util.getRandomColor());
-		}
-		else
-		{
-			return new ItemStack(Material.WOOL, 1, type.getWoolColor().getWoolData());
-		}
+		return new ItemStack(Material.REDSTONE, 1);
 	}
 
 	private ItemStack createParticleMaterialStack()
 	{
-		Material mat = type.getParticleMaterial().getItemType();
-		byte data = type.getParticleMaterial().getData();
+		Material mat = type.getParticleMaterial();
 		if (!Util.isAllowedMaterial(mat))
-		{
-			mat = Material.REDSTONE;
-			data = 0;
-		}
-		return new ItemStack(mat, 1, data);
+			mat = Material.RED_DYE;
+		return new ItemStack(mat, 1);
 	}
 
 	public boolean isStainingMaterial()
 	{
 		final Material mat = stack.getType();
-		return mat == type.getParticleMaterial().getItemType() || mat == Material.WOOL;
+		return mat == type.getParticleMaterial() || mat == Material.RED_CONCRETE;
 	}
 
-	private void makeUnique(final World world)
+	private void makeUnique()
 	{
-		stack.addUnsafeEnchantment(Enchantment.DURABILITY, Util.getCounter(world.getUID()));
+		ItemMeta meta = stack.getItemMeta();
+		meta.setLore(Collections.singletonList(UUID.randomUUID().toString()));
+		stack.setItemMeta(meta);
 	}
 
 	private Item dropItem(final Location loc)

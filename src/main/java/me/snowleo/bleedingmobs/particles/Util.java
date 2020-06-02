@@ -42,18 +42,27 @@ public final class Util
 		return (span > 0 ? RANDOM.nextInt(span) : 0) + from;
 	}
 
-	public static byte getRandomColor()
-	{
-		// 1 2 3 4 5 6 9 10 11 13 14
-		int color = 1 + RANDOM.nextInt(11);
-		color = color > 6 ? color + 2 : color;
-		color = color > 11 ? color + 1 : color;
-		return (byte)color;
-	}
-
 	public static boolean isAllowedMaterial(final Material mat)
 	{
-		return mat.getMaxDurability() == 0 && mat != Material.PUMPKIN && mat != Material.SKULL_ITEM && mat != Material.SKULL;
+		if (mat.getMaxDurability() != 0)
+			return false;
+
+		switch (mat)
+		{
+			case PUMPKIN:
+			case PLAYER_HEAD:
+			case DRAGON_HEAD:
+			case PISTON_HEAD:
+			case ZOMBIE_HEAD:
+			case CREEPER_HEAD:
+			case DRAGON_WALL_HEAD:
+			case PLAYER_WALL_HEAD:
+			case ZOMBIE_WALL_HEAD:
+			case CREEPER_WALL_HEAD:
+				return false;
+			default:
+				return true;
+		}
 	}
 
 	public static int getCounter(final UUID worldId)

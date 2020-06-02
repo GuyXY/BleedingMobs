@@ -31,12 +31,9 @@ public class TypeCommand extends AbstractSubCommand
 		register("bonechance", new BoneChance(type, plugin));
 		register("bonelife", new BoneLife(type, plugin));
 		register("particlelife", new ParticleLife(type, plugin));
-		register("particlematerial", new ParticleMaterial(type, plugin));
-		register("saturatedmats", new SaturatedMats(type, plugin));
 		register("stainlife", new StainLife(type, plugin));
 		register("stainsfloor", new StainsFloor(type, plugin));
 		register("woolchance", new WoolChance(type, plugin));
-		register("woolcolor", new WoolColor(type, plugin));
 	}
 
 	@Override

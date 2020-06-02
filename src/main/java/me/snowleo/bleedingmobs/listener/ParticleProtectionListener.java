@@ -248,8 +248,7 @@ public class ParticleProtectionListener implements Listener
 	private boolean isParticleItemStack(final ItemStack item)
 	{
 		return item != null
-			   && item.containsEnchantment(Enchantment.DURABILITY)
-			   && item.getEnchantmentLevel(Enchantment.DURABILITY) >= Util.COUNTER_MIN
+			   && item.getItemMeta() != null && item.getItemMeta().hasLore()
 			   && plugin.getSettings().getParticleMaterials().contains(item.getType());
 	}
 }
