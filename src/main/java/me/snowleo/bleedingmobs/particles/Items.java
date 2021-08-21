@@ -98,14 +98,19 @@ public class Items
 		synchronized (particlesPerWorld)
 		{
 			Integer c = particlesPerWorld.get(worldId);
-			if (c == null || c <= 0)
+			if (c == null)
 			{
 				Bukkit.getLogger().info("Item at " + item.getLocation() + " with value " + item.getItemStack());
 				throw new IllegalStateException();
 			}
+			else if(c <= 0)
+			{
+				Bukkit.getLogger().warning("Number of " + item.getItemStack() + " particles in world " + item.getWorld() + " is <= 0 even tho it shouldn't be!");
+				particlesPerWorld.put(worldId, 0);
+			}
 			else
 			{
-				particlesPerWorld.put(worldId, Integer.valueOf(c - 1));
+				particlesPerWorld.put(worldId, c - 1);
 			}
 		}
 	}
