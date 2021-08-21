@@ -7,4 +7,7 @@
 /lib/
 /dist/
 /target/
+/.idea/
+/classes/
 .DS_Store
+BleedingMobs.iml
